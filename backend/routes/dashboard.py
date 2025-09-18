@@ -88,7 +88,7 @@ def student_dashboard():
         'fees': {
             'summary': fee_summary,
             'pendingFees': len(pending_fees),
-            'overdueFees': len([fee for fee in pending_fees if fee.get('dueDate', datetime.now()) < datetime.now()])
+            'overdueFees': len([fee for fee in pending_fees if isinstance(fee.get('dueDate'), datetime) and fee.get('dueDate') < datetime.now()])
         }
     }
     
