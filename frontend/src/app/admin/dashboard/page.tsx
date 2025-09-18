@@ -11,8 +11,10 @@ import {
   CurrencyDollarIcon,
   ExclamationTriangleIcon,
   ChartBarIcon,
-  TrendingUpIcon,
-  TrendingDownIcon,
+} from '@heroicons/react/24/outline';
+import {
+  ArrowTrendingUpIcon as TrendingUpIcon,
+  ArrowTrendingDownIcon as TrendingDownIcon,
 } from '@heroicons/react/24/outline';
 import { formatCurrency, formatDate } from '@/lib/utils';
 

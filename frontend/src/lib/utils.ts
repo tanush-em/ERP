@@ -245,6 +245,29 @@ export const storage = {
   },
 };
 
+// User utility functions
+export const getUserDisplayName = (user: any): string => {
+  if (!user) return 'Unknown User';
+  
+  const { profile } = user;
+  if (profile?.firstName && profile?.lastName) {
+    return `${profile.firstName} ${profile.lastName}`;
+  }
+  
+  return user.username || 'Unknown User';
+};
+
+export const getUserInitials = (user: any): string => {
+  if (!user) return 'U';
+  
+  const { profile } = user;
+  if (profile?.firstName && profile?.lastName) {
+    return `${profile.firstName[0]}${profile.lastName[0]}`.toUpperCase();
+  }
+  
+  return user.username?.[0]?.toUpperCase() || 'U';
+};
+
 // Debounce utility
 export const debounce = <T extends (...args: any[]) => any>(
   func: T,
