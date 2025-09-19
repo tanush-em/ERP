@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Layout from '@/components/Layout/Layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
+import Input from '@/components/ui/Input';
 import { 
   ClipboardDocumentListIcon, 
   CheckCircleIcon, 
@@ -65,7 +65,7 @@ const StudentAttendancePage: React.FC = () => {
               <p className="text-secondary-600 mt-2">Loading attendance summary...</p>
             </div>
           ) : summary.length > 0 ? (
-            summary.map((course) => (
+            summary.map((course: any) => (
               <Card key={course._id?.courseId} className="card-hover">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
@@ -125,7 +125,7 @@ const StudentAttendancePage: React.FC = () => {
                   disabled={coursesLoading}
                 >
                   <option value="">All Courses</option>
-                  {courses.map((course) => (
+                  {courses.map((course: any) => (
                     <option key={course.courseId} value={course.courseId}>
                       {course.course?.courseCode} - {course.course?.courseName}
                     </option>
@@ -140,7 +140,7 @@ const StudentAttendancePage: React.FC = () => {
                 <Input
                   type="date"
                   value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStartDate(e.target.value)}
                 />
               </div>
 
@@ -151,7 +151,7 @@ const StudentAttendancePage: React.FC = () => {
                 <Input
                   type="date"
                   value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEndDate(e.target.value)}
                 />
               </div>
             </div>
@@ -174,7 +174,7 @@ const StudentAttendancePage: React.FC = () => {
               </div>
             ) : attendanceRecords.length > 0 ? (
               <div className="space-y-4">
-                {attendanceRecords.map((record, index) => (
+                {attendanceRecords.map((record: any, index: number) => (
                   <div
                     key={index}
                     className="flex items-center justify-between p-4 bg-secondary-50 rounded-lg hover:bg-secondary-100 transition-colors"

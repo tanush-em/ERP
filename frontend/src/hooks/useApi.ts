@@ -113,6 +113,27 @@ export const useStudentNotifications = (params?: {
   });
 };
 
+export const useStudentGPA = (params?: { 
+  studentId?: string; 
+  semester?: string; 
+}) => {
+  return useQuery({
+    queryKey: ['studentGPA', params],
+    queryFn: () => studentApi.getGPA(params),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+export const useStudentTranscript = (params?: { 
+  studentId?: string; 
+}) => {
+  return useQuery({
+    queryKey: ['studentTranscript', params],
+    queryFn: () => studentApi.getTranscript(params),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
 // Admin hooks
 export const useStudents = (params?: { 
   page?: number; 
