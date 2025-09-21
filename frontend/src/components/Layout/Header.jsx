@@ -40,7 +40,7 @@ const Header = ({ onMenuClick }) => {
           
           <div className="ml-4 lg:ml-0">
             <h1 className="text-lg font-semibold text-secondary-900">
-              DEPARTMENT OF CSE - AIML
+              DEPARTMENT OF CSE - AI & ML
             </h1>
           </div>
         </div>

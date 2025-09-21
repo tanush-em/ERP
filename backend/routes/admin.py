@@ -253,6 +253,229 @@ def get_attendance_records():
         'total': len(records)
     }), 200
 
+@admin_bp.route('/attendance/september-2025/class-stats', methods=['GET'])
+def get_september_class_stats():
+    """Get overall class attendance statistics for September 2025"""
+    attendance_model = Attendance()
+    
+    # September 2025 date range
+    start_date = datetime(2025, 9, 1)
+    end_date = datetime(2025, 9, 30)
+    
+    # Get overall statistics
+    total_records = attendance_model.db.attendance.count_documents({
+        'date': {'$gte': start_date, '$lte': end_date}
+    })
+    
+    present_records = attendance_model.db.attendance.count_documents({
+        'date': {'$gte': start_date, '$lte': end_date},
+        'status': {'$in': ['present', 'late']}
+    })
+    
+    absent_records = total_records - present_records
+    overall_percentage = (present_records / total_records * 100) if total_records > 0 else 0
+    
+    # Get statistics by course
+    pipeline = [
+        {"$match": {
+            "date": {"$gte": start_date, "$lte": end_date}
+        }},
+        {"$lookup": {
+            "from": "courses",
+            "localField": "courseId",
+            "foreignField": "_id",
+            "as": "course"
+        }},
+        {"$unwind": "$course"},
+        {"$group": {
+            "_id": {
+                "courseCode": "$course.courseCode",
+                "courseName": "$course.courseName"
+            },
+            "total": {"$sum": 1},
+            "present": {"$sum": {"$cond": [{"$in": ["$status", ["present", "late"]]}, 1, 0]}}
+        }},
+        {"$addFields": {
+            "percentage": {"$multiply": [{"$divide": ["$present", "$total"]}, 100]},
+            "absent": {"$subtract": ["$total", "$present"]}
+        }},
+        {"$sort": {"_id.courseCode": 1}}
+    ]
+    
+    course_stats = list(attendance_model.db.attendance.aggregate(pipeline))
+    
+    # Get daily attendance trend
+    daily_pipeline = [
+        {"$match": {
+            "date": {"$gte": start_date, "$lte": end_date}
+        }},
+        {"$group": {
+            "_id": {
+                "date": {"$dateToString": {"format": "%Y-%m-%d", "date": "$date"}},
+                "status": "$status"
+            },
+            "count": {"$sum": 1}
+        }},
+        {"$group": {
+            "_id": "$_id.date",
+            "total": {"$sum": "$count"},
+            "present": {
+                "$sum": {
+                    "$cond": [{"$in": ["$_id.status", ["present", "late"]]}, "$count", 0]
+                }
+            }
+        }},
+        {"$addFields": {
+            "percentage": {"$multiply": [{"$divide": ["$present", "$total"]}, 100]}
+        }},
+        {"$sort": {"_id": 1}}
+    ]
+    
+    daily_stats = list(attendance_model.db.attendance.aggregate(daily_pipeline))
+    
+    return jsonify({
+        'month': 'September 2025',
+        'overall': {
+            'totalRecords': total_records,
+            'presentRecords': present_records,
+            'absentRecords': absent_records,
+            'percentage': round(overall_percentage, 2)
+        },
+        'courseStats': course_stats,
+        'dailyTrend': daily_stats
+    }), 200
+
+@admin_bp.route('/attendance/september-2025/student/<student_id>', methods=['GET'])
+def get_september_student_attendance(student_id):
+    """Get individual student attendance for September 2025"""
+    attendance_model = Attendance()
+    
+    # September 2025 date range
+    start_date = datetime(2025, 9, 1)
+    end_date = datetime(2025, 9, 30)
+    
+    # Get student details
+    student_model = Student()
+    student = student_model.find_by_id(student_id)
+    
+    if not student:
+        return jsonify({'error': 'Student not found'}), 404
+    
+    # Get attendance records for the student
+    attendance_records = attendance_model.get_student_attendance(
+        student_id, 
+        start_date=start_date, 
+        end_date=end_date
+    )
+    
+    # Calculate overall statistics
+    total_classes = len(attendance_records)
+    present_classes = len([r for r in attendance_records if r['status'] in ['present', 'late']])
+    absent_classes = total_classes - present_classes
+    percentage = (present_classes / total_classes * 100) if total_classes > 0 else 0
+    
+    # Get statistics by course
+    course_stats = []
+    courses = {}
+    
+    for record in attendance_records:
+        course_id = record['courseId']
+        if course_id not in courses:
+            courses[course_id] = {
+                'courseId': course_id,
+                'courseName': record.get('course', {}).get('courseName', 'Unknown Course'),
+                'courseCode': record.get('course', {}).get('courseCode', 'Unknown'),
+                'total': 0,
+                'present': 0,
+                'absent': 0
+            }
+        
+        courses[course_id]['total'] += 1
+        if record['status'] in ['present', 'late']:
+            courses[course_id]['present'] += 1
+        else:
+            courses[course_id]['absent'] += 1
+    
+    for course_data in courses.values():
+        course_data['percentage'] = (course_data['present'] / course_data['total'] * 100) if course_data['total'] > 0 else 0
+        course_stats.append(course_data)
+    
+    # Get daily attendance pattern
+    daily_pattern = {}
+    for record in attendance_records:
+        date_str = record['date'].strftime('%Y-%m-%d')
+        if date_str not in daily_pattern:
+            daily_pattern[date_str] = []
+        daily_pattern[date_str].append({
+            'courseCode': record.get('course', {}).get('courseCode', 'Unknown'),
+            'status': record['status']
+        })
+    
+    return jsonify({
+        'student': {
+            'id': student['id'],
+            'name': f"{student['profile']['firstName']} {student['profile']['lastName']}",
+            'rollNumber': student['profile']['rollNumber']
+        },
+        'month': 'September 2025',
+        'overall': {
+            'totalClasses': total_classes,
+            'presentClasses': present_classes,
+            'absentClasses': absent_classes,
+            'percentage': round(percentage, 2)
+        },
+        'courseStats': course_stats,
+        'dailyPattern': daily_pattern,
+        'attendanceRecords': attendance_records
+    }), 200
+
+@admin_bp.route('/attendance/september-2025/low-attendance', methods=['GET'])
+def get_september_low_attendance():
+    """Get students with low attendance in September 2025"""
+    threshold = float(request.args.get('threshold', 75))
+    attendance_model = Attendance()
+    
+    # September 2025 date range
+    start_date = datetime(2025, 9, 1)
+    end_date = datetime(2025, 9, 30)
+    
+    pipeline = [
+        {"$match": {
+            "date": {"$gte": start_date, "$lte": end_date}
+        }},
+        {"$lookup": {
+            "from": "students",
+            "localField": "studentId",
+            "foreignField": "_id",
+            "as": "student"
+        }},
+        {"$unwind": "$student"},
+        {"$group": {
+            "_id": {
+                "studentId": "$studentId",
+                "rollNumber": "$student.profile.rollNumber",
+                "name": {"$concat": ["$student.profile.firstName", " ", "$student.profile.lastName"]}
+            },
+            "total": {"$sum": 1},
+            "present": {"$sum": {"$cond": [{"$in": ["$status", ["present", "late"]]}, 1, 0]}}
+        }},
+        {"$addFields": {
+            "percentage": {"$multiply": [{"$divide": ["$present", "$total"]}, 100]},
+            "absent": {"$subtract": ["$total", "$present"]}
+        }},
+        {"$match": {"percentage": {"$lt": threshold}}},
+        {"$sort": {"percentage": 1}}
+    ]
+    
+    low_attendance_students = list(attendance_model.db.attendance.aggregate(pipeline))
+    
+    return jsonify({
+        'month': 'September 2025',
+        'threshold': threshold,
+        'lowAttendanceStudents': low_attendance_students,
+        'count': len(low_attendance_students)
+    }), 200
+
 @admin_bp.route('/attendance', methods=['POST'])
 def mark_attendance():
     """Mark attendance for students"""

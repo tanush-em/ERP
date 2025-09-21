@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { 
@@ -9,10 +10,12 @@ import {
   UserGroupIcon,
   CheckCircleIcon,
   XCircleIcon,
-  ClockIcon
+  ClockIcon,
+  ChartBarIcon
 } from '@heroicons/react/24/outline';
 
 const AttendancePage = () => {
+  const router = useRouter();
   const [attendanceData, setAttendanceData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -103,10 +106,20 @@ const AttendancePage = () => {
           </h1>
           <p className="text-secondary-600 mt-2">Track and manage student attendance</p>
         </div>
-        <Button className="flex items-center space-x-2">
-          <CalendarDaysIcon className="h-4 w-4" />
-          <span>Mark Attendance</span>
-        </Button>
+        <div className="flex space-x-2">
+          <Button 
+            variant="outline" 
+            className="flex items-center space-x-2"
+            onClick={() => router.push('/admin/attendance/september-2025')}
+          >
+            <ChartBarIcon className="h-4 w-4" />
+            <span>September 2025 Stats</span>
+          </Button>
+          <Button className="flex items-center space-x-2">
+            <CalendarDaysIcon className="h-4 w-4" />
+            <span>Mark Attendance</span>
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}

@@ -8,41 +8,47 @@ class Course:
         self.db = get_db()
         self.collection = self.db.courses
     
-    def create_course(self, course_data):
+    def create_course(self, course_name, handling_faculty):
         """Create a new course"""
-        course_data['createdAt'] = datetime.now()
-        course_data['updatedAt'] = datetime.now()
-        course_data['isActive'] = True
+        course_data = {
+            'course_name': course_name,
+            'handling_faculty': handling_faculty,
+            'createdAt': datetime.now(),
+            'updatedAt': datetime.now()
+        }
         
         result = self.collection.insert_one(course_data)
         return str(result.inserted_id)
     
     def find_by_id(self, course_id):
         """Find course by ID"""
-        course = self.collection.find_one({'_id': ObjectId(course_id), 'isActive': True})
+        course = self.collection.find_one({'_id': ObjectId(course_id)})
         return serialize_mongo_doc(course)
     
-    def find_by_code(self, course_code):
-        """Find course by course code"""
-        course = self.collection.find_one({'courseCode': course_code, 'isActive': True})
+    def find_by_name(self, course_name):
+        """Find course by course name"""
+        course = self.collection.find_one({'course_name': course_name})
         return serialize_mongo_doc(course)
     
     def get_all_courses(self):
-        """Get all active courses"""
-        courses = list(self.collection.find({'isActive': True}).sort('courseCode', 1))
+        """Get all courses"""
+        courses = list(self.collection.find().sort('course_name', 1))
         return serialize_mongo_doc(courses)
     
-    def get_courses_by_semester(self, semester):
-        """Get courses by semester"""
-        courses = list(self.collection.find({
-            'semester': semester,
-            'isActive': True
-        }).sort('courseCode', 1))
+    def get_courses_by_faculty(self, handling_faculty):
+        """Get courses by handling faculty"""
+        courses = list(self.collection.find({'handling_faculty': handling_faculty}).sort('course_name', 1))
         return serialize_mongo_doc(courses)
     
-    def update_course(self, course_id, update_data):
+    def update_course(self, course_id, course_name=None, handling_faculty=None):
         """Update course data"""
-        update_data['updatedAt'] = datetime.now()
+        update_data = {'updatedAt': datetime.now()}
+        
+        if course_name:
+            update_data['course_name'] = course_name
+        if handling_faculty:
+            update_data['handling_faculty'] = handling_faculty
+        
         result = self.collection.update_one(
             {'_id': ObjectId(course_id)},
             {'$set': update_data}
@@ -50,45 +56,38 @@ class Course:
         return result.modified_count > 0
     
     def delete_course(self, course_id):
-        """Delete course (soft delete)"""
-        result = self.collection.update_one(
-            {'_id': ObjectId(course_id)},
-            {'$set': {'isActive': False, 'updatedAt': datetime.now()}}
-        )
-        return result.modified_count > 0
+        """Delete course"""
+        result = self.collection.delete_one({'_id': ObjectId(course_id)})
+        return result.deleted_count > 0
     
     def get_course_stats(self):
         """Get course statistics"""
-        total_courses = self.collection.count_documents({'isActive': True})
+        total_courses = self.collection.count_documents({})
         
-        # Semester-wise course count
+        # Faculty-wise course count
         pipeline = [
-            {'$match': {'isActive': True}},
             {'$group': {
-                '_id': '$semester',
-                'count': {'$sum': 1},
-                'totalCredits': {'$sum': '$credits'}
+                '_id': '$handling_faculty',
+                'count': {'$sum': 1}
             }},
-            {'$sort': {'_id': 1}}
+            {'$sort': {'count': -1}}
         ]
         
-        semester_stats = list(self.collection.aggregate(pipeline))
+        faculty_stats = list(self.collection.aggregate(pipeline))
         
         return {
-            'totalCourses': total_courses,
-            'semesterWise': serialize_mongo_doc(semester_stats)
+            'total_courses': total_courses,
+            'faculty_wise': serialize_mongo_doc(faculty_stats)
         }
     
     def search_courses(self, query):
-        """Search courses by name or code"""
+        """Search courses by name or faculty"""
         search_filter = {
             '$or': [
-                {'courseName': {'$regex': query, '$options': 'i'}},
-                {'courseCode': {'$regex': query, '$options': 'i'}},
-                {'faculty': {'$regex': query, '$options': 'i'}}
-            ],
-            'isActive': True
+                {'course_name': {'$regex': query, '$options': 'i'}},
+                {'handling_faculty': {'$regex': query, '$options': 'i'}}
+            ]
         }
         
-        courses = list(self.collection.find(search_filter).sort('courseCode', 1))
+        courses = list(self.collection.find(search_filter).sort('course_name', 1))
         return serialize_mongo_doc(courses)

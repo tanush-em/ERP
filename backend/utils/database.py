@@ -35,32 +35,36 @@ def create_indexes():
     """Create database indexes for better performance"""
     db = get_db()
     
-    # User indexes
-    db.users.create_index("username", unique=True)
-    db.users.create_index("email", unique=True)
-    db.users.create_index("profile.rollNumber", unique=True, sparse=True)
+    # User indexes (keeping existing for compatibility)
+    try:
+        db.users.create_index("username", unique=True)
+        db.users.create_index("email", unique=True)
+        db.users.create_index("profile.rollNumber", unique=True, sparse=True)
+    except:
+        pass
     
-    # Course indexes
-    db.courses.create_index("courseCode", unique=True)
-    db.courses.create_index([("semester", 1), ("isActive", 1)])
+    # New schema indexes
     
-    # Enrollment indexes
-    db.enrollments.create_index([("studentId", 1), ("courseId", 1)], unique=True)
-    db.enrollments.create_index("studentId")
-    db.enrollments.create_index("courseId")
+    # Attendance indexes - roll_no should be unique
+    db.attendance.create_index("roll_no", unique=True)
+    db.attendance.create_index("name")
     
-    # Attendance indexes
-    db.attendance.create_index([("studentId", 1), ("courseId", 1), ("date", 1)], unique=True)
-    db.attendance.create_index("studentId")
-    db.attendance.create_index("courseId")
-    db.attendance.create_index("date")
+    # Leave indexes
+    db.leave.create_index("roll_no")
+    db.leave.create_index("status")
+    db.leave.create_index("date_of_leave")
     
-    # Score indexes
-    db.scores.create_index([("studentId", 1), ("courseId", 1), ("examType", 1)])
-    db.scores.create_index("studentId")
+    # Course indexes - course_name should be unique
+    db.courses.create_index("course_name", unique=True)
+    db.courses.create_index("handling_faculty")
+    
+    # Timetable indexes
+    db.timetable.create_index([("day", 1), ("period", 1)])
+    db.timetable.create_index("course_name")
     
     # Notification indexes
-    db.notifications.create_index("userId")
-    db.notifications.create_index([("userId", 1), ("isRead", 1)])
+    db.notification.create_index("priority")
+    db.notification.create_index("author")
+    db.notification.create_index("due_date")
     
     print("✅ Database indexes created successfully!")

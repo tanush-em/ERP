@@ -6,94 +6,54 @@ from utils.helpers import serialize_mongo_doc
 class Timetable:
     def __init__(self):
         self.db = get_db()
-        self.collection = self.db.timetables
+        self.collection = self.db.timetable
     
-    def create_entry(self, timetable_data):
+    def create_entry(self, day, period, course_name, duration):
         """Create a new timetable entry"""
-        timetable_data['createdAt'] = datetime.now()
-        timetable_data['updatedAt'] = datetime.now()
+        timetable_data = {
+            'day': day,
+            'period': period,
+            'course_name': course_name,
+            'duration': duration,
+            'createdAt': datetime.now(),
+            'updatedAt': datetime.now()
+        }
         
         result = self.collection.insert_one(timetable_data)
         return str(result.inserted_id)
     
-    def get_timetable(self, semester=None, day=None):
-        """Get timetable with optional filtering"""
+    def get_timetable(self, day=None):
+        """Get timetable with optional filtering by day"""
         filter_query = {}
         
-        if semester:
-            filter_query['semester'] = semester
+        if day:
+            filter_query['day'] = day
+        
+        timetable = list(self.collection.find(filter_query).sort([('day', 1), ('period', 1)]))
+        return serialize_mongo_doc(timetable)
+    
+    def get_timetable_by_day(self, day):
+        """Get timetable entries for a specific day"""
+        timetable = list(self.collection.find({'day': day}).sort('period', 1))
+        return serialize_mongo_doc(timetable)
+    
+    def get_timetable_by_course(self, course_name):
+        """Get timetable entries for a specific course"""
+        timetable = list(self.collection.find({'course_name': course_name}).sort([('day', 1), ('period', 1)]))
+        return serialize_mongo_doc(timetable)
+    
+    def update_timetable_entry(self, entry_id, day=None, period=None, course_name=None, duration=None):
+        """Update a timetable entry"""
+        update_data = {'updatedAt': datetime.now()}
         
         if day:
-            filter_query['dayOfWeek'] = day
-        
-        pipeline = [
-            {'$match': filter_query},
-            {'$lookup': {
-                'from': 'courses',
-                'localField': 'courseId',
-                'foreignField': '_id',
-                'as': 'course'
-            }},
-            {'$unwind': '$course'},
-            {'$sort': [('dayOfWeek', 1), ('startTime', 1)]}
-        ]
-        
-        timetable = list(self.collection.aggregate(pipeline))
-        return serialize_mongo_doc(timetable)
-    
-    def get_student_timetable(self, student_id, semester):
-        """Get timetable for a student based on enrolled courses"""
-        # Get student's enrolled courses
-        enrolled_courses = list(self.db.enrollments.find({
-            'studentId': ObjectId(student_id),
-            'semester': semester,
-            'status': 'enrolled'
-        }))
-        
-        course_ids = [enrollment['courseId'] for enrollment in enrolled_courses]
-        
-        # Get timetable entries for these courses
-        timetable = list(self.collection.find({
-            'courseId': {'$in': course_ids},
-            'semester': semester
-        }).sort([('dayOfWeek', 1), ('startTime', 1)]))
-        
-        # Populate course details
-        for entry in timetable:
-            course = self.db.courses.find_one({'_id': entry['courseId']})
-            entry['course'] = course
-        
-        return serialize_mongo_doc(timetable)
-    
-    def get_course_timetable(self, course_id):
-        """Get timetable for a specific course"""
-        timetable = list(self.collection.find({
-            'courseId': ObjectId(course_id)
-        }).sort([('dayOfWeek', 1), ('startTime', 1)]))
-        
-        # Populate course details
-        for entry in timetable:
-            course = self.db.courses.find_one({'_id': entry['courseId']})
-            entry['course'] = course
-        
-        return serialize_mongo_doc(timetable)
-    
-    def get_semester_timetable(self, semester):
-        """Get complete timetable for a semester"""
-        timetable = list(self.collection.find({
-            'semester': semester
-        }).sort([('dayOfWeek', 1), ('startTime', 1)]))
-        
-        # Populate course details
-        for entry in timetable:
-            course = self.db.courses.find_one({'_id': entry['courseId']})
-            entry['course'] = course
-        
-        return serialize_mongo_doc(timetable)
-    
-    def update_timetable_entry(self, entry_id, update_data):
-        """Update a timetable entry"""
-        update_data['updatedAt'] = datetime.now()
+            update_data['day'] = day
+        if period:
+            update_data['period'] = period
+        if course_name:
+            update_data['course_name'] = course_name
+        if duration:
+            update_data['duration'] = duration
         
         result = self.collection.update_one(
             {'_id': ObjectId(entry_id)},
@@ -106,87 +66,54 @@ class Timetable:
         result = self.collection.delete_one({'_id': ObjectId(entry_id)})
         return result.deleted_count > 0
     
-    def get_room_schedule(self, room_number, day=None):
-        """Get schedule for a specific room"""
-        filter_query = {'roomNumber': room_number}
+    def get_weekly_schedule(self):
+        """Get organized weekly schedule"""
+        timetable = list(self.collection.find().sort([('day', 1), ('period', 1)]))
         
-        if day:
-            filter_query['dayOfWeek'] = day
-        
-        schedule = list(self.collection.find(filter_query).sort('startTime', 1))
-        
-        # Populate course details
-        for entry in schedule:
-            course = self.db.courses.find_one({'_id': entry['courseId']})
-            entry['course'] = course
-        
-        return serialize_mongo_doc(schedule)
-    
-    def get_faculty_schedule(self, faculty_name, day=None):
-        """Get schedule for a faculty member"""
-        # First get courses taught by this faculty
-        courses = list(self.db.courses.find({'faculty': faculty_name}))
-        course_ids = [course['_id'] for course in courses]
-        
-        filter_query = {'courseId': {'$in': course_ids}}
-        
-        if day:
-            filter_query['dayOfWeek'] = day
-        
-        schedule = list(self.collection.find(filter_query).sort([('dayOfWeek', 1), ('startTime', 1)]))
-        
-        # Populate course details
-        for entry in schedule:
-            course = self.db.courses.find_one({'_id': entry['courseId']})
-            entry['course'] = course
-        
-        return serialize_mongo_doc(schedule)
-    
-    def check_time_conflict(self, course_id, day_of_week, start_time, end_time, room_number=None, exclude_id=None):
-        """Check for time conflicts in timetable"""
-        filter_query = {
-            'dayOfWeek': day_of_week,
-            '$or': [
-                {
-                    'startTime': {'$lt': end_time},
-                    'endTime': {'$gt': start_time}
-                }
-            ]
-        }
-        
-        # Check room conflict
-        if room_number:
-            filter_query['roomNumber'] = room_number
-        
-        # Exclude current entry when updating
-        if exclude_id:
-            filter_query['_id'] = {'$ne': ObjectId(exclude_id)}
-        
-        conflicts = list(self.collection.find(filter_query))
-        return serialize_mongo_doc(conflicts)
-    
-    def get_weekly_schedule(self, semester):
-        """Get organized weekly schedule for a semester"""
-        timetable = list(self.collection.find({
-            'semester': semester
-        }).sort([('dayOfWeek', 1), ('startTime', 1)]))
-        
-        # Organize by day of week
+        # Organize by day
         weekly_schedule = {
             'Monday': [],
             'Tuesday': [],
             'Wednesday': [],
             'Thursday': [],
             'Friday': [],
-            'Saturday': []
+            'Saturday': [],
+            'Sunday': []
         }
         
         for entry in timetable:
-            course = self.db.courses.find_one({'_id': entry['courseId']})
-            entry['course'] = course
-            
-            day = entry['dayOfWeek']
+            day = entry['day']
             if day in weekly_schedule:
                 weekly_schedule[day].append(entry)
         
         return serialize_mongo_doc(weekly_schedule)
+    
+    def get_timetable_stats(self):
+        """Get timetable statistics"""
+        total_entries = self.collection.count_documents({})
+        
+        # Day-wise count
+        day_pipeline = [
+            {'$group': {
+                '_id': '$day',
+                'count': {'$sum': 1}
+            }},
+            {'$sort': {'count': -1}}
+        ]
+        day_stats = list(self.collection.aggregate(day_pipeline))
+        
+        # Course-wise count
+        course_pipeline = [
+            {'$group': {
+                '_id': '$course_name',
+                'count': {'$sum': 1}
+            }},
+            {'$sort': {'count': -1}}
+        ]
+        course_stats = list(self.collection.aggregate(course_pipeline))
+        
+        return {
+            'total_entries': total_entries,
+            'day_wise': serialize_mongo_doc(day_stats),
+            'course_wise': serialize_mongo_doc(course_stats)
+        }
