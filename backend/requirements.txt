@@ -1,5 +1,11 @@
 Flask==3.0.0
 Flask-CORS==4.0.0
+Flask-SocketIO==5.3.6
 PyMongo==4.6.0
 Werkzeug==3.0.1
 python-dotenv==1.0.0
+pandas==2.1.4
+numpy==1.26.2
+psutil==5.9.6
+aiohttp==3.9.1
+python-socketio==5.10.0

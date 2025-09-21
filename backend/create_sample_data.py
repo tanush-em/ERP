@@ -345,16 +345,12 @@ def create_enrollments():
                 )
                 
                 if not existing_enrollment:
-                    enrollment_data = {
-                        'studentId': student['_id'],
-                        'courseId': ObjectId(course['id']),
-                        'enrollmentDate': datetime.now(),
-                        'status': 'enrolled',
-                        'semester': current_semester,
-                        'academicYear': academic_year
-                    }
-                    
-                    enrollment_model.enroll_student(enrollment_data)
+                    enrollment_model.enroll_student(
+                        str(student['_id']),
+                        course['id'],
+                        current_semester,
+                        academic_year
+                    )
                     enrollments_created += 1
     
     print(f"Created {enrollments_created} enrollments")
@@ -398,7 +394,7 @@ def create_timetable():
             'semester': course['semester']
         }
         
-        timetable_model.create_timetable_entry(timetable_data)
+        timetable_model.create_entry(timetable_data)
         timetable_entries.append(timetable_data)
     
     print(f"Created {len(timetable_entries)} timetable entries")
@@ -521,7 +517,7 @@ def create_fees():
                 'description': f"{fee_type['type']} for {academic_year}"
             }
             
-            fee_id = fee_model.create_fee_record({
+            fee_id = fee_model.create_fee({
                 **fee_data,
                 'studentId': student['_id']
             })
