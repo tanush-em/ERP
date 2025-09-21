@@ -14,9 +14,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from models.user import User
 from models.course import Course
-from models.enrollment import Enrollment
 from models.attendance import Attendance
-from models.score import Score
 from models.timetable import Timetable
 from models.fee import Fee
 from models.notification import Notification
@@ -307,53 +305,6 @@ def create_students():
     print(f"Created {len(created_students)} students")
     return created_students
 
-def create_enrollments():
-    """Create sample enrollments"""
-    print("Creating enrollments...")
-    
-    user_model = User()
-    course_model = Course()
-    enrollment_model = Enrollment()
-    
-    # Get all students
-    students = user_model.collection.find({'role': 'student'})
-    
-    # Get courses by semester
-    semester_courses = {
-        1: course_model.get_courses_by_semester(1),
-        2: course_model.get_courses_by_semester(2),
-        3: course_model.get_courses_by_semester(3),
-        4: course_model.get_courses_by_semester(4),
-        5: course_model.get_courses_by_semester(5),
-        6: course_model.get_courses_by_semester(6)
-    }
-    
-    current_semester = get_semester_from_date()
-    academic_year = get_academic_year()
-    
-    enrollments_created = 0
-    
-    for student in students:
-        student_semester = student['profile']['semester']
-        
-        # Enroll in current semester courses
-        if student_semester in semester_courses:
-            for course in semester_courses[student_semester]:
-                # Check if already enrolled
-                existing_enrollment = enrollment_model.check_enrollment(
-                    str(student['_id']), course['id']
-                )
-                
-                if not existing_enrollment:
-                    enrollment_model.enroll_student(
-                        str(student['_id']),
-                        course['id'],
-                        current_semester,
-                        academic_year
-                    )
-                    enrollments_created += 1
-    
-    print(f"Created {enrollments_created} enrollments")
 
 def create_timetable():
     """Create sample timetable"""
@@ -448,42 +399,6 @@ def create_attendance_records():
         attendance_model.bulk_mark_attendance(attendance_records)
         print(f"Created {len(attendance_records)} attendance records")
 
-def create_scores():
-    """Create sample scores"""
-    print("Creating scores...")
-    
-    user_model = User()
-    enrollment_model = Enrollment()
-    score_model = Score()
-    
-    students = list(user_model.collection.find({'role': 'student'}))[:10]  # First 10 students
-    
-    exam_types = ['Internal-1', 'Internal-2', 'Assignment-1', 'Lab-1']
-    scores_data = []
-    
-    for student in students:
-        enrollments = enrollment_model.get_student_enrollments(str(student['_id']), 'enrolled')
-        
-        for enrollment in enrollments[:3]:  # First 3 courses per student
-            for exam_type in exam_types:
-                import random
-                marks = random.randint(60, 95)  # Good students!
-                
-                score_data = {
-                    'studentId': student['_id'],
-                    'courseId': ObjectId(enrollment['courseId']),
-                    'examType': exam_type,
-                    'marks': marks,
-                    'maxMarks': 100,
-                    'examDate': datetime.now() - timedelta(days=random.randint(1, 60)),
-                    'semester': get_semester_from_date()
-                }
-                
-                scores_data.append(score_data)
-    
-    if scores_data:
-        score_model.bulk_add_scores(scores_data)
-        print(f"Created {len(scores_data)} score records")
 
 def create_fees():
     """Create sample fee records"""
@@ -584,10 +499,8 @@ def main():
         create_admin_users()
         create_courses()
         create_students()
-        create_enrollments()
         create_timetable()
         create_attendance_records()
-        create_scores()
         create_fees()
         create_notifications()
         

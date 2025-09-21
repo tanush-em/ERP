@@ -14,9 +14,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from models.user import User
 from models.course import Course
-from models.enrollment import Enrollment
 from models.attendance import Attendance
-from models.score import Score
 from models.timetable import Timetable
 from models.fee import Fee
 from models.notification import Notification
@@ -289,142 +287,8 @@ def create_students():
     print(f"Created {len(created_students)} students")
     return created_students
 
-def create_enrollments():
-    """Create enrollments for all students in semester 5 courses"""
-    print("Creating enrollments...")
-    
-    user_model = User()
-    course_model = Course()
-    enrollment_model = Enrollment()
-    
-    # Get all students
-    students = list(user_model.collection.find({'role': 'student'}))
-    
-    # Get semester 5 courses (current semester)
-    semester_5_courses = course_model.get_courses_by_semester(5)
-    
-    current_semester = 5  # Current semester
-    academic_year = get_academic_year()
-    
-    enrollments_created = 0
-    
-    for student in students:
-        student_semester = student['profile'].get('semester', 5)
-        
-        # Enroll all students in semester 5 courses
-        if student_semester == 5:
-            for course in semester_5_courses:
-                # Check if already enrolled
-                existing_enrollment = enrollment_model.check_enrollment(
-                    str(student['_id']), course['id']
-                )
-                
-                if not existing_enrollment:
-                    enrollment_data = {
-                        'studentId': student['_id'],
-                        'courseId': ObjectId(course['id']),
-                        'enrollmentDate': datetime.now(),
-                        'status': 'enrolled',
-                        'semester': current_semester,
-                        'academicYear': academic_year
-                    }
-                    
-                    enrollment_model.enroll_student(enrollment_data)
-                    enrollments_created += 1
-    
-    print(f"Created {enrollments_created} enrollments")
 
-def create_sample_attendance():
-    """Create sample attendance records for students"""
-    print("Creating sample attendance records...")
-    
-    user_model = User()
-    enrollment_model = Enrollment()
-    attendance_model = Attendance()
-    
-    # Get all students
-    students = list(user_model.collection.find({'role': 'student'}))
-    
-    attendance_records = []
-    
-    for student in students:
-        # Get student's enrolled courses
-        enrollments = enrollment_model.get_student_enrollments(str(student['_id']), 'enrolled')
-        
-        for enrollment in enrollments:
-            course_id = enrollment['courseId']
-            
-            # Create attendance for last 30 days (excluding weekends)
-            for days_back in range(1, 31):
-                attendance_date = (datetime.now() - timedelta(days=days_back)).date()
-                
-                # Skip weekends
-                if attendance_date.weekday() >= 5:  # Saturday=5, Sunday=6
-                    continue
-                
-                # 80% attendance rate
-                import random
-                status = 'present' if random.random() < 0.80 else 'absent'
-                
-                attendance_data = {
-                    'studentId': student['_id'],
-                    'courseId': ObjectId(course_id),
-                    'date': attendance_date,
-                    'status': status,
-                    'sessionType': 'theory',
-                    'markedBy': ObjectId('507f1f77bcf86cd799439011')  # Dummy admin ID
-                }
-                
-                attendance_records.append(attendance_data)
-    
-    if attendance_records:
-        # Bulk insert attendance records
-        try:
-            attendance_model.bulk_mark_attendance(attendance_records)
-            print(f"Created {len(attendance_records)} attendance records")
-        except Exception as e:
-            print(f"Error creating attendance records: {e}")
 
-def create_sample_scores():
-    """Create sample score records for students"""
-    print("Creating sample scores...")
-    
-    user_model = User()
-    enrollment_model = Enrollment()
-    score_model = Score()
-    
-    students = list(user_model.collection.find({'role': 'student'}))
-    
-    exam_types = ['Internal-1', 'Internal-2', 'Assignment-1', 'Lab-1', 'Quiz-1']
-    scores_data = []
-    
-    for student in students:
-        enrollments = enrollment_model.get_student_enrollments(str(student['_id']), 'enrolled')
-        
-        for enrollment in enrollments:
-            for exam_type in exam_types:
-                import random
-                # Generate realistic marks (60-95 range for good performance)
-                marks = random.randint(60, 95)
-                
-                score_data = {
-                    'studentId': student['_id'],
-                    'courseId': ObjectId(enrollment['courseId']),
-                    'examType': exam_type,
-                    'marks': marks,
-                    'maxMarks': 100,
-                    'examDate': datetime.now() - timedelta(days=random.randint(1, 60)),
-                    'semester': 5
-                }
-                
-                scores_data.append(score_data)
-    
-    if scores_data:
-        try:
-            score_model.bulk_add_scores(scores_data)
-            print(f"Created {len(scores_data)} score records")
-        except Exception as e:
-            print(f"Error creating scores: {e}")
 
 def create_sample_fees():
     """Create sample fee records for students"""
@@ -485,7 +349,7 @@ def create_notifications():
     notifications = [
         {
             'title': 'Welcome to Academic Year 2024-25',
-            'message': 'Welcome to the new academic year. Please check your course enrollments and timetable.',
+            'message': 'Welcome to the new academic year. Please check your timetable and attendance.',
             'category': 'announcement',
             'priority': 'high'
         },
@@ -542,12 +406,7 @@ def main():
         # Create students from the provided list
         create_students()
         
-        # Create enrollments for students
-        create_enrollments()
-        
         # Create sample data for proper ERP functionality
-        create_sample_attendance()
-        create_sample_scores()
         create_sample_fees()
         create_notifications()
         

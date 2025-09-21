@@ -2,9 +2,8 @@ from flask import Blueprint, request, jsonify
 from datetime import datetime, timedelta
 from models.student import Student
 from models.course import Course
-from models.enrollment import Enrollment
 from models.attendance import Attendance
-from models.score import Score
+from models.leave import Leave
 from models.timetable import Timetable
 from models.fee import Fee
 from models.notification import Notification
@@ -199,38 +198,6 @@ def delete_course(course_id):
             'error': 'Failed to delete course'
         }), 500
 
-# Enrollment Management
-@admin_bp.route('/enrollments', methods=['GET'])
-def get_enrollments():
-    """Get all enrollments"""
-    enrollment_model = Enrollment()
-    enrollments = enrollment_model.get_all_enrollments()
-    
-    return jsonify({'enrollments': enrollments}), 200
-
-@admin_bp.route('/enrollments', methods=['POST'])
-def create_enrollment():
-    """Enroll student in course"""
-    data = request.get_json()
-    
-    required_fields = ['studentId', 'courseId', 'semester']
-    for field in required_fields:
-        if field not in data:
-            return jsonify({
-                'error': f'Missing required field: {field}'
-            }), 400
-    
-    enrollment_model = Enrollment()
-    enrollment_id = enrollment_model.enroll_student(
-        data['studentId'], 
-        data['courseId'], 
-        data['semester']
-    )
-    
-    return jsonify({
-        'message': 'Student enrolled successfully',
-        'enrollmentId': enrollment_id
-    }), 201
 
 # Attendance Management
 @admin_bp.route('/attendance', methods=['GET'])
@@ -506,52 +473,39 @@ def mark_attendance():
         'successCount': success_count
     }), 200
 
-# Score Management
-@admin_bp.route('/scores', methods=['GET'])
-def get_scores():
-    """Get scores with filtering"""
-    course_id = request.args.get('courseId')
-    student_id = request.args.get('studentId')
-    exam_type = request.args.get('examType')
-    
-    score_model = Score()
-    scores = score_model.get_scores(course_id, student_id, exam_type)
+# Leave Management
+@admin_bp.route('/leave', methods=['GET'])
+def get_leave_requests():
+    """Get all leave requests"""
+    leave_model = Leave()
+    leave_requests = leave_model.get_all_leave_requests()
     
     return jsonify({
-        'scores': scores,
-        'total': len(scores)
+        'leave_requests': leave_requests,
+        'total': len(leave_requests)
     }), 200
 
-@admin_bp.route('/scores', methods=['POST'])
-def add_scores():
-    """Add scores for students"""
+@admin_bp.route('/leave/<leave_id>/status', methods=['PUT'])
+def update_leave_status(leave_id):
+    """Update leave request status"""
     data = request.get_json()
     
-    required_fields = ['courseId', 'examType', 'maxScore', 'scores']
-    for field in required_fields:
-        if field not in data:
-            return jsonify({
-                'error': f'Missing required field: {field}'
-            }), 400
+    if 'status' not in data:
+        return jsonify({
+            'error': 'Missing required field: status'
+        }), 400
     
-    score_model = Score()
+    leave_model = Leave()
+    success = leave_model.update_leave_status(leave_id, data['status'])
     
-    success_count = 0
-    for score_data in data['scores']:
-        success = score_model.add_score(
-            score_data['studentId'],
-            data['courseId'],
-            data['examType'],
-            score_data['score'],
-            data['maxScore']
-        )
-        if success:
-            success_count += 1
-    
-    return jsonify({
-        'message': f'Scores added for {success_count} students',
-        'successCount': success_count
-    }), 200
+    if success:
+        return jsonify({
+            'message': 'Leave status updated successfully'
+        }), 200
+    else:
+        return jsonify({
+            'error': 'Failed to update leave status'
+        }), 500
 
 # Fee Management
 @admin_bp.route('/fees', methods=['GET'])

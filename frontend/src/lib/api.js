@@ -95,16 +95,17 @@ export const adminApi = {
     body: attendanceData,
   }),
   
-  // Scores
-  getScores: (params = {}) => {
+  // Leave
+  getLeaveRequests: (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
-    return apiRequest(`/api/admin/scores${queryString ? `?${queryString}` : ''}`);
+    return apiRequest(`/api/admin/leave${queryString ? `?${queryString}` : ''}`);
   },
   
-  addScores: (scoresData) => apiRequest('/api/admin/scores', {
-    method: 'POST',
-    body: scoresData,
+  updateLeaveStatus: (leaveId, statusData) => apiRequest(`/api/admin/leave/${leaveId}/status`, {
+    method: 'PUT',
+    body: statusData,
   }),
+  
   
   // Fees
   getFees: (params = {}) => {
@@ -144,16 +145,6 @@ export const adminApi = {
     body: timetableData,
   }),
   
-  // Enrollments
-  getEnrollments: (params = {}) => {
-    const queryString = new URLSearchParams(params).toString();
-    return apiRequest(`/api/admin/enrollments${queryString ? `?${queryString}` : ''}`);
-  },
-  
-  createEnrollment: (enrollmentData) => apiRequest('/api/admin/enrollments', {
-    method: 'POST',
-    body: enrollmentData,
-  }),
 };
 
 // Student API functions
@@ -170,10 +161,6 @@ export const studentApi = {
     return apiRequest(`/api/student/attendance${queryString ? `?${queryString}` : ''}`);
   },
   
-  getScores: (params = {}) => {
-    const queryString = new URLSearchParams(params).toString();
-    return apiRequest(`/api/student/scores${queryString ? `?${queryString}` : ''}`);
-  },
   
   getNotifications: (params = {}) => {
     const queryString = new URLSearchParams(params).toString();

@@ -36,7 +36,7 @@ class ChangeStreamManager:
                 'audit_logging': True,
                 'notifications': False  # Too frequent for notifications
             },
-            'scores': {
+            'leave': {
                 'enabled': True,
                 'operations': ['insert', 'update', 'delete'],
                 'audit_logging': True,

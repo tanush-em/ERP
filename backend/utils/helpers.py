@@ -18,27 +18,11 @@ def calculate_attendance_percentage(present_days, total_days):
         return 0
     return round((present_days / total_days) * 100, 2)
 
-def calculate_gpa(scores):
-    """Calculate GPA based on scores and credits"""
-    total_grade_points = 0
-    total_credits = 0
-    
-    grade_scale = {
-        'A+': 10, 'A': 9, 'B+': 8, 'B': 7, 'C+': 6, 'C': 5, 'D': 4, 'F': 0
-    }
-    
-    for score in scores:
-        grade = score.get('grade', 'F')
-        credits = score.get('credits', 0)
-        
-        if grade in grade_scale:
-            total_grade_points += grade_scale[grade] * credits
-            total_credits += credits
-    
-    if total_credits == 0:
-        return 0
-    
-    return round(total_grade_points / total_credits, 2)
+def calculate_attendance_percentage(present_classes, total_classes):
+    """Calculate attendance percentage"""
+    if total_classes == 0:
+        return 0.0
+    return round((present_classes / total_classes) * 100, 2)
 
 def get_grade_from_marks(marks, max_marks=100):
     """Convert marks to grade"""
