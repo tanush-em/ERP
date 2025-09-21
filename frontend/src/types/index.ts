@@ -1,24 +1,22 @@
-// User and Authentication Types
-export interface User {
+// Student and Profile Types
+export interface Student {
   id: string;
-  username: string;
   email: string;
-  role: 'admin' | 'student';
-  profile: UserProfile;
+  profile: StudentProfile;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface UserProfile {
+export interface StudentProfile {
   firstName: string;
   lastName: string;
   department: string;
   phone: string;
   address: Address;
-  rollNumber?: string; // Only for students
-  year?: number; // Only for students
-  semester?: number; // Only for students
+  rollNumber: string;
+  year: number;
+  semester: number;
 }
 
 export interface Address {
@@ -26,18 +24,6 @@ export interface Address {
   city: string;
   state: string;
   pincode: string;
-}
-
-export interface AuthResponse {
-  message: string;
-  user: User;
-  accessToken: string;
-  refreshToken: string;
-}
-
-export interface LoginCredentials {
-  username: string;
-  password: string;
 }
 
 // Course Types
@@ -64,7 +50,7 @@ export interface Enrollment {
   semester: string;
   academicYear: string;
   course?: Course;
-  student?: User;
+  student?: Student;
 }
 
 // Attendance Types
@@ -77,7 +63,7 @@ export interface AttendanceRecord {
   sessionType: 'theory' | 'lab' | 'tutorial';
   markedBy: string;
   course?: Course;
-  student?: User;
+  student?: Student;
 }
 
 export interface AttendancePercentage {
@@ -110,7 +96,7 @@ export interface Score {
   examDate: string;
   semester: string;
   course?: Course;
-  student?: User;
+  student?: Student;
 }
 
 export interface GPAData {
@@ -158,7 +144,7 @@ export interface Fee {
   paymentMethod?: string;
   transactionId?: string;
   paymentReference?: string;
-  student?: User;
+  student?: Student;
 }
 
 export interface FeesSummary {
@@ -185,7 +171,7 @@ export interface Notification {
 
 // Dashboard Types
 export interface StudentDashboard {
-  student: User;
+  student: Student;
   academicInfo: {
     currentSemester: string;
     academicYear: string;
@@ -206,40 +192,6 @@ export interface StudentDashboard {
   };
 }
 
-export interface AdminDashboard {
-  overview: {
-    totalStudents: number;
-    totalCourses: number;
-    totalEnrollments: number;
-    lowAttendanceStudents: number;
-    feeDefaulters: number;
-    unreadNotifications: number;
-  };
-  studentStats: {
-    totalStudents: number;
-    semesterWise: Array<{ _id: number; count: number }>;
-  };
-  courseStats: {
-    totalCourses: number;
-    semesterWise: Array<{ _id: number; count: number; totalCredits: number }>;
-  };
-  enrollmentStats: {
-    totalEnrollments: number;
-    statusWise: Array<{ _id: string; count: number }>;
-    semesterWise: Array<{ _id: string; count: number }>;
-  };
-  feeStats: any;
-  recentActivities: {
-    newEnrollments: number;
-    feePayments: number;
-  };
-  alerts: {
-    lowAttendanceStudents: any[];
-    feeDefaulters: any[];
-    overdueNotifications: number;
-  };
-}
-
 // API Response Types
 export interface ApiResponse<T = any> {
   message?: string;
@@ -252,66 +204,6 @@ export interface PaginatedResponse<T> {
   total: number;
   page: number;
   totalPages: number;
-}
-
-// Form Types
-export interface CreateStudentForm {
-  username: string;
-  email: string;
-  password: string;
-  profile: {
-    firstName: string;
-    lastName: string;
-    year: number;
-    semester: number;
-    phone: string;
-    rollNumber?: string;
-    address: Address;
-  };
-}
-
-export interface CreateCourseForm {
-  courseCode: string;
-  courseName: string;
-  credits: number;
-  semester: number;
-  faculty: string;
-  description: string;
-  prerequisites: string[];
-}
-
-export interface AttendanceForm {
-  attendanceRecords: Array<{
-    studentId: string;
-    courseId: string;
-    date: string;
-    status: 'present' | 'absent' | 'late';
-    sessionType: 'theory' | 'lab' | 'tutorial';
-  }>;
-}
-
-export interface ScoreForm {
-  scores: Array<{
-    studentId: string;
-    courseId: string;
-    examType: string;
-    marks: number;
-    maxMarks: number;
-    examDate: string;
-    semester: string;
-  }>;
-}
-
-export interface NotificationForm {
-  title: string;
-  message: string;
-  category: string;
-  priority: 'low' | 'normal' | 'high';
-  target: 'all_students' | 'semester_students' | 'specific_users';
-  semester?: string;
-  userIds?: string[];
-  link?: string;
-  metadata?: any;
 }
 
 // Utility Types

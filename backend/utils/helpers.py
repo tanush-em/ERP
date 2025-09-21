@@ -1,15 +1,6 @@
 from datetime import datetime, timedelta
 from bson import ObjectId
-from werkzeug.security import generate_password_hash, check_password_hash
 import re
-
-def hash_password(password):
-    """Hash password using werkzeug"""
-    return generate_password_hash(password)
-
-def verify_password(password, password_hash):
-    """Verify password against hash"""
-    return check_password_hash(password_hash, password)
 
 def validate_email(email):
     """Validate email format"""

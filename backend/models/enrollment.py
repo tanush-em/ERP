@@ -8,14 +8,44 @@ class Enrollment:
         self.db = get_db()
         self.collection = self.db.enrollments
     
-    def enroll_student(self, enrollment_data):
+    def enroll_student(self, student_id, course_id, semester, academic_year=None):
         """Enroll a student in a course"""
-        enrollment_data['enrollmentDate'] = datetime.now()
-        enrollment_data['createdAt'] = datetime.now()
-        enrollment_data['updatedAt'] = datetime.now()
+        enrollment_data = {
+            'studentId': ObjectId(student_id),
+            'courseId': ObjectId(course_id),
+            'semester': semester,
+            'academicYear': academic_year,
+            'status': 'enrolled',
+            'enrollmentDate': datetime.now(),
+            'createdAt': datetime.now(),
+            'updatedAt': datetime.now()
+        }
         
         result = self.collection.insert_one(enrollment_data)
         return str(result.inserted_id)
+    
+    def get_all_enrollments(self):
+        """Get all enrollments"""
+        pipeline = [
+            {'$lookup': {
+                'from': 'students',
+                'localField': 'studentId',
+                'foreignField': '_id',
+                'as': 'student'
+            }},
+            {'$lookup': {
+                'from': 'courses',
+                'localField': 'courseId',
+                'foreignField': '_id',
+                'as': 'course'
+            }},
+            {'$unwind': '$student'},
+            {'$unwind': '$course'},
+            {'$sort': {'enrollmentDate': -1}}
+        ]
+        
+        enrollments = list(self.collection.aggregate(pipeline))
+        return serialize_mongo_doc(enrollments)
     
     def get_student_enrollments(self, student_id, status=None):
         """Get all enrollments for a student"""

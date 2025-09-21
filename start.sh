@@ -41,7 +41,7 @@ start_backend() {
     python create_sample_data.py
     
     # Start the Flask server
-    echo "🚀 Starting Flask backend on http://localhost:5000"
+    echo "🚀 Starting Flask backend on http://localhost:5005"
     python app.py &
     BACKEND_PID=$!
     
@@ -91,7 +91,7 @@ echo "🎉 College ERP System is starting up!"
 echo ""
 echo "📍 Access the application at:"
 echo "   Frontend: http://localhost:3000"
-echo "   Backend:  http://localhost:5000"
+echo "   Backend:  http://localhost:5005"
 echo ""
 echo "🔐 Test Credentials:"
 echo "   Admin:    admin / admin123"

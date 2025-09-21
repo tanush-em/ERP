@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from bson import ObjectId
+from pymongo import UpdateOne
 from utils.database import get_db
 from utils.helpers import serialize_mongo_doc, calculate_attendance_percentage
 
@@ -8,23 +9,64 @@ class Attendance:
         self.db = get_db()
         self.collection = self.db.attendance
     
-    def mark_attendance(self, attendance_data):
+    def mark_attendance(self, student_id, course_id, date, status):
         """Mark attendance for a student"""
-        attendance_data['createdAt'] = datetime.now()
-        attendance_data['updatedAt'] = datetime.now()
+        attendance_data = {
+            'studentId': ObjectId(student_id),
+            'courseId': ObjectId(course_id),
+            'date': date,
+            'status': status,
+            'createdAt': datetime.now(),
+            'updatedAt': datetime.now()
+        }
         
         # Use upsert to handle duplicate entries
         result = self.collection.update_one(
             {
-                'studentId': attendance_data['studentId'],
-                'courseId': attendance_data['courseId'],
-                'date': attendance_data['date']
+                'studentId': ObjectId(student_id),
+                'courseId': ObjectId(course_id),
+                'date': date
             },
             {'$set': attendance_data},
             upsert=True
         )
         
         return str(result.upserted_id) if result.upserted_id else True
+    
+    def get_attendance_records(self, course_id=None, student_id=None, date=None):
+        """Get attendance records with optional filtering"""
+        filter_query = {}
+        
+        if course_id:
+            filter_query['courseId'] = ObjectId(course_id)
+        
+        if student_id:
+            filter_query['studentId'] = ObjectId(student_id)
+            
+        if date:
+            filter_query['date'] = date
+        
+        pipeline = [
+            {'$match': filter_query},
+            {'$lookup': {
+                'from': 'students',
+                'localField': 'studentId',
+                'foreignField': '_id',
+                'as': 'student'
+            }},
+            {'$lookup': {
+                'from': 'courses',
+                'localField': 'courseId',
+                'foreignField': '_id',
+                'as': 'course'
+            }},
+            {'$unwind': '$student'},
+            {'$unwind': '$course'},
+            {'$sort': {'date': -1}}
+        ]
+        
+        records = list(self.collection.aggregate(pipeline))
+        return serialize_mongo_doc(records)
     
     def bulk_mark_attendance(self, attendance_records):
         """Bulk mark attendance for multiple students"""
@@ -33,17 +75,15 @@ class Attendance:
             record['createdAt'] = datetime.now()
             record['updatedAt'] = datetime.now()
             
-            operations.append({
-                'updateOne': {
-                    'filter': {
-                        'studentId': record['studentId'],
-                        'courseId': record['courseId'],
-                        'date': record['date']
-                    },
-                    'update': {'$set': record},
-                    'upsert': True
-                }
-            })
+            operations.append(UpdateOne(
+                {
+                    'studentId': record['studentId'],
+                    'courseId': record['courseId'],
+                    'date': record['date']
+                },
+                {'$set': record},
+                upsert=True
+            ))
         
         if operations:
             result = self.collection.bulk_write(operations)

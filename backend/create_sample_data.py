@@ -426,7 +426,8 @@ def create_attendance_records():
             
             # Create attendance for last 30 days
             for days_back in range(1, 31):
-                attendance_date = (datetime.now() - timedelta(days=days_back)).date()
+                attendance_datetime = datetime.now() - timedelta(days=days_back)
+                attendance_date = attendance_datetime.date()
                 
                 # Skip weekends
                 if attendance_date.weekday() >= 5:  # Saturday=5, Sunday=6
@@ -439,7 +440,7 @@ def create_attendance_records():
                 attendance_data = {
                     'studentId': student['_id'],
                     'courseId': ObjectId(course_id),
-                    'date': attendance_date,
+                    'date': attendance_datetime.replace(hour=9, minute=0, second=0, microsecond=0),  # Set to 9 AM
                     'status': status,
                     'sessionType': 'theory',
                     'markedBy': ObjectId('507f1f77bcf86cd799439011')  # Dummy admin ID

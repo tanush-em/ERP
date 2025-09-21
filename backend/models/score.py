@@ -8,17 +8,59 @@ class Score:
         self.db = get_db()
         self.collection = self.db.scores
     
-    def add_score(self, score_data):
+    def add_score(self, student_id, course_id, exam_type, score, max_score):
         """Add a new score record"""
-        score_data['createdAt'] = datetime.now()
-        score_data['updatedAt'] = datetime.now()
+        score_data = {
+            'studentId': ObjectId(student_id),
+            'courseId': ObjectId(course_id),
+            'examType': exam_type,
+            'marks': score,
+            'maxMarks': max_score,
+            'createdAt': datetime.now(),
+            'updatedAt': datetime.now()
+        }
         
         # Calculate grade if marks are provided
-        if 'marks' in score_data and 'maxMarks' in score_data:
-            score_data['grade'] = get_grade_from_marks(score_data['marks'], score_data['maxMarks'])
+        if score is not None and max_score:
+            score_data['grade'] = get_grade_from_marks(score, max_score)
         
         result = self.collection.insert_one(score_data)
         return str(result.inserted_id)
+    
+    def get_scores(self, course_id=None, student_id=None, exam_type=None):
+        """Get scores with optional filtering"""
+        filter_query = {}
+        
+        if course_id:
+            filter_query['courseId'] = ObjectId(course_id)
+        
+        if student_id:
+            filter_query['studentId'] = ObjectId(student_id)
+            
+        if exam_type:
+            filter_query['examType'] = exam_type
+        
+        pipeline = [
+            {'$match': filter_query},
+            {'$lookup': {
+                'from': 'students',
+                'localField': 'studentId',
+                'foreignField': '_id',
+                'as': 'student'
+            }},
+            {'$lookup': {
+                'from': 'courses',
+                'localField': 'courseId',
+                'foreignField': '_id',
+                'as': 'course'
+            }},
+            {'$unwind': '$student'},
+            {'$unwind': '$course'},
+            {'$sort': {'examDate': -1}}
+        ]
+        
+        scores = list(self.collection.aggregate(pipeline))
+        return serialize_mongo_doc(scores)
     
     def update_score(self, score_id, update_data):
         """Update a score record"""

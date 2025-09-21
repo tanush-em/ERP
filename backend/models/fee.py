@@ -8,7 +8,7 @@ class Fee:
         self.db = get_db()
         self.collection = self.db.fees
     
-    def create_fee_record(self, fee_data):
+    def create_fee(self, fee_data):
         """Create a new fee record"""
         fee_data['createdAt'] = datetime.now()
         fee_data['updatedAt'] = datetime.now()
@@ -16,6 +16,62 @@ class Fee:
         
         result = self.collection.insert_one(fee_data)
         return str(result.inserted_id)
+    
+    def get_all_fees(self, student_id=None, academic_year=None, status=None):
+        """Get all fee records with optional filtering"""
+        filter_query = {}
+        
+        if student_id:
+            filter_query['studentId'] = ObjectId(student_id)
+        
+        if academic_year:
+            filter_query['academicYear'] = academic_year
+            
+        if status == 'paid':
+            filter_query['isPaid'] = True
+        elif status == 'pending':
+            filter_query['isPaid'] = False
+        elif status == 'overdue':
+            filter_query['isPaid'] = False
+            filter_query['dueDate'] = {'$lt': datetime.now()}
+        
+        pipeline = [
+            {'$match': filter_query},
+            {'$lookup': {
+                'from': 'students',
+                'localField': 'studentId',
+                'foreignField': '_id',
+                'as': 'student'
+            }},
+            {'$unwind': '$student'},
+            {'$sort': {'dueDate': 1}}
+        ]
+        
+        fees = list(self.collection.aggregate(pipeline))
+        return serialize_mongo_doc(fees)
+    
+    def record_payment(self, fee_id, payment_method='cash', transaction_id='', paid_amount=None):
+        """Record fee payment"""
+        fee = self.collection.find_one({'_id': ObjectId(fee_id)})
+        if not fee:
+            return False
+            
+        update_data = {
+            'isPaid': True,
+            'paymentDate': datetime.now(),
+            'paymentMethod': payment_method,
+            'transactionId': transaction_id,
+            'updatedAt': datetime.now()
+        }
+        
+        if paid_amount:
+            update_data['paidAmount'] = paid_amount
+        
+        result = self.collection.update_one(
+            {'_id': ObjectId(fee_id)},
+            {'$set': update_data}
+        )
+        return result.modified_count > 0
     
     def get_student_fees(self, student_id, academic_year=None):
         """Get fee records for a student"""

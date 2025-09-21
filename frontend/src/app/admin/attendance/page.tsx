@@ -1,251 +1,298 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import Layout from '@/components/Layout/Layout';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import React, { useEffect, useState } from 'react';
+import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { 
-  ClipboardDocumentListIcon, 
-  CheckIcon, 
-  XMarkIcon,
   CalendarDaysIcon,
   UserGroupIcon,
-  BookOpenIcon
+  CheckIcon,
+  XMarkIcon
 } from '@heroicons/react/24/outline';
-import { useCourses, useStudents, useMarkAttendance } from '@/hooks/useApi';
-import { toast } from 'react-hot-toast';
 
 interface AttendanceRecord {
-  studentId: string;
-  status: 'present' | 'absent';
+  _id: string;
+  student: {
+    _id: string;
+    profile: {
+      firstName: string;
+      lastName: string;
+      rollNumber: string;
+    };
+  };
+  course: {
+    _id: string;
+    courseName: string;
+    courseCode: string;
+  };
+  date: string;
+  status: 'present' | 'absent' | 'late';
 }
 
-const AdminAttendancePage: React.FC = () => {
-  const [selectedCourse, setSelectedCourse] = useState('');
+const AttendancePage = () => {
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [attendanceRecords, setAttendanceRecords] = useState<Record<string, 'present' | 'absent'>>({});
-  const [isMarkingAttendance, setIsMarkingAttendance] = useState(false);
-
-  const { data: coursesData, isLoading: coursesLoading } = useCourses();
-  const { data: studentsData, isLoading: studentsLoading } = useStudents();
-  const markAttendanceMutation = useMarkAttendance();
-
-  const courses = coursesData?.courses || [];
-  const students = studentsData?.students || [];
-
-  // Filter students enrolled in selected course
-  const enrolledStudents = students.filter(student => 
-    // This would need to be enhanced with actual enrollment data
-    // For now, showing all students as a demo
-    true
-  );
+  const [selectedCourse, setSelectedCourse] = useState('');
+  const [courses, setCourses] = useState<any[]>([]);
 
   useEffect(() => {
-    // Initialize attendance records when students change
-    const initialRecords: Record<string, 'present' | 'absent'> = {};
-    enrolledStudents.forEach(student => {
-      initialRecords[student.id] = 'present'; // Default to present
-    });
-    setAttendanceRecords(initialRecords);
-  }, [enrolledStudents.length, selectedCourse]);
+    fetchCourses();
+    fetchAttendanceRecords();
+  }, []);
 
-  const handleAttendanceChange = (studentId: string, status: 'present' | 'absent') => {
-    setAttendanceRecords(prev => ({
-      ...prev,
-      [studentId]: status
-    }));
+  useEffect(() => {
+    if (selectedDate || selectedCourse) {
+      fetchAttendanceRecords();
+    }
+  }, [selectedDate, selectedCourse]);
+
+  const fetchCourses = async () => {
+    try {
+      const response = await fetch('/api/admin/courses');
+      if (response.ok) {
+        const data = await response.json();
+        setCourses(data.courses || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch courses:', error);
+    }
   };
 
-  const handleSubmitAttendance = async () => {
-    if (!selectedCourse || !selectedDate) {
-      toast.error('Please select a course and date');
-      return;
-    }
-
-    setIsMarkingAttendance(true);
-
+  const fetchAttendanceRecords = async () => {
     try {
-      const attendanceData = Object.entries(attendanceRecords).map(([studentId, status]) => ({
-        studentId,
-        courseId: selectedCourse,
-        date: selectedDate,
-        status,
-        sessionType: 'theory'
-      }));
+      const params = new URLSearchParams();
+      if (selectedDate) params.append('date', selectedDate);
+      if (selectedCourse) params.append('courseId', selectedCourse);
 
-      await markAttendanceMutation.mutateAsync({
-        attendanceRecords: attendanceData
+      const response = await fetch(`/api/admin/attendance?${params}`);
+      if (response.ok) {
+        const data = await response.json();
+        setAttendanceRecords(data.attendance || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch attendance records:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const markAttendance = async (studentId: string, courseId: string, status: string) => {
+    try {
+      const response = await fetch('/api/admin/attendance', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          courseId,
+          date: selectedDate,
+          attendanceRecords: [{
+            studentId,
+            status
+          }]
+        }),
       });
 
-      toast.success(`Attendance marked for ${attendanceData.length} students`);
+      if (response.ok) {
+        fetchAttendanceRecords();
+      }
     } catch (error) {
-      toast.error('Failed to mark attendance');
-      console.error('Attendance marking error:', error);
-    } finally {
-      setIsMarkingAttendance(false);
+      console.error('Failed to mark attendance:', error);
     }
   };
 
-  const presentCount = Object.values(attendanceRecords).filter(status => status === 'present').length;
-  const absentCount = Object.values(attendanceRecords).filter(status => status === 'absent').length;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
 
   return (
-    <Layout requiredRole="admin">
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-secondary-900">Attendance Management</h1>
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-secondary-900">Attendance Management</h1>
+      </div>
+
+      {/* Filters */}
+      <Card className="p-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-secondary-700 mb-1">
+              Date
+            </label>
+            <Input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-secondary-700 mb-1">
+              Course
+            </label>
+            <select
+              value={selectedCourse}
+              onChange={(e) => setSelectedCourse(e.target.value)}
+              className="w-full px-3 py-2 border border-secondary-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            >
+              <option value="">All Courses</option>
+              {courses.map((course) => (
+                <option key={course._id} value={course._id}>
+                  {course.courseCode} - {course.courseName}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-end">
+            <Button onClick={fetchAttendanceRecords} className="w-full">
+              Filter Records
+            </Button>
+          </div>
         </div>
+      </Card>
 
-        {/* Course and Date Selection */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <CalendarDaysIcon className="h-5 w-5 mr-2 text-primary-600" />
-              Mark Attendance
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <div>
-                <label className="block text-sm font-medium text-secondary-700 mb-2">
-                  Select Course
-                </label>
-                <select
-                  value={selectedCourse}
-                  onChange={(e) => setSelectedCourse(e.target.value)}
-                  className="w-full px-3 py-2 border border-secondary-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  disabled={coursesLoading}
-                >
-                  <option value="">Select a course...</option>
-                  {courses.map((course) => (
-                    <option key={course.id} value={course.id}>
-                      {course.courseCode} - {course.courseName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-secondary-700 mb-2">
-                  Date
-                </label>
-                <Input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  max={new Date().toISOString().split('T')[0]}
-                />
-              </div>
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="p-6">
+          <div className="flex items-center">
+            <div className="p-3 rounded-lg bg-green-100">
+              <CheckIcon className="h-6 w-6 text-green-600" />
             </div>
-
-            {selectedCourse && (
-              <div className="bg-secondary-50 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center">
-                      <UserGroupIcon className="h-5 w-5 text-green-600 mr-2" />
-                      <span className="text-sm font-medium text-green-700">
-                        Present: {presentCount}
-                      </span>
-                    </div>
-                    <div className="flex items-center">
-                      <XMarkIcon className="h-5 w-5 text-red-600 mr-2" />
-                      <span className="text-sm font-medium text-red-700">
-                        Absent: {absentCount}
-                      </span>
-                    </div>
-                  </div>
-                  <Button
-                    onClick={handleSubmitAttendance}
-                    disabled={isMarkingAttendance || !selectedCourse}
-                    className="bg-primary-600 hover:bg-primary-700"
-                  >
-                    {isMarkingAttendance ? 'Saving...' : 'Save Attendance'}
-                  </Button>
-                </div>
-              </div>
-            )}
-          </CardContent>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-secondary-600">Present</p>
+              <p className="text-2xl font-semibold text-secondary-900">
+                {attendanceRecords.filter(r => r.status === 'present').length}
+              </p>
+            </div>
+          </div>
         </Card>
 
-        {/* Student Attendance List */}
-        {selectedCourse && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <ClipboardDocumentListIcon className="h-5 w-5 mr-2 text-primary-600" />
-                Student Attendance
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {studentsLoading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-                  <p className="text-secondary-600 mt-2">Loading students...</p>
-                </div>
-              ) : enrolledStudents.length === 0 ? (
-                <div className="text-center py-8">
-                  <UserGroupIcon className="h-12 w-12 text-secondary-400 mx-auto mb-4" />
-                  <p className="text-secondary-600">No students found for this course</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {enrolledStudents.map((student) => (
-                    <div
-                      key={student.id}
-                      className="flex items-center justify-between p-4 bg-secondary-50 rounded-lg hover:bg-secondary-100 transition-colors"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
-                          <span className="text-primary-600 font-medium text-sm">
-                            {student.profile?.firstName?.charAt(0)}{student.profile?.lastName?.charAt(0)}
-                          </span>
-                        </div>
-                        <div>
-                          <p className="font-medium text-secondary-900">
-                            {student.profile?.firstName} {student.profile?.lastName}
-                          </p>
-                          <p className="text-sm text-secondary-600">
-                            {student.profile?.rollNumber}
-                          </p>
-                        </div>
-                      </div>
+        <Card className="p-6">
+          <div className="flex items-center">
+            <div className="p-3 rounded-lg bg-red-100">
+              <XMarkIcon className="h-6 w-6 text-red-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-secondary-600">Absent</p>
+              <p className="text-2xl font-semibold text-secondary-900">
+                {attendanceRecords.filter(r => r.status === 'absent').length}
+              </p>
+            </div>
+          </div>
+        </Card>
 
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => handleAttendanceChange(student.id, 'present')}
-                          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                            attendanceRecords[student.id] === 'present'
-                              ? 'bg-green-600 text-white'
-                              : 'bg-green-100 text-green-700 hover:bg-green-200'
-                          }`}
-                        >
-                          <CheckIcon className="h-4 w-4 mr-1 inline" />
-                          Present
-                        </button>
-                        <button
-                          onClick={() => handleAttendanceChange(student.id, 'absent')}
-                          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                            attendanceRecords[student.id] === 'absent'
-                              ? 'bg-red-600 text-white'
-                              : 'bg-red-100 text-red-700 hover:bg-red-200'
-                          }`}
-                        >
-                          <XMarkIcon className="h-4 w-4 mr-1 inline" />
-                          Absent
-                        </button>
+        <Card className="p-6">
+          <div className="flex items-center">
+            <div className="p-3 rounded-lg bg-yellow-100">
+              <CalendarDaysIcon className="h-6 w-6 text-yellow-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-secondary-600">Late</p>
+              <p className="text-2xl font-semibold text-secondary-900">
+                {attendanceRecords.filter(r => r.status === 'late').length}
+              </p>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Attendance Records */}
+      <Card className="overflow-hidden">
+        <div className="px-6 py-4 border-b border-secondary-200">
+          <h2 className="text-lg font-semibold text-secondary-900">
+            Attendance Records
+          </h2>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-secondary-200">
+            <thead className="bg-secondary-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+                  Student
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+                  Course
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+                  Date
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-secondary-200">
+              {attendanceRecords.map((record) => (
+                <tr key={record._id} className="hover:bg-secondary-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div>
+                      <div className="text-sm font-medium text-secondary-900">
+                        {record.student.profile.firstName} {record.student.profile.lastName}
+                      </div>
+                      <div className="text-sm text-secondary-500">
+                        {record.student.profile.rollNumber}
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-      </div>
-    </Layout>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-secondary-900">
+                      {record.course.courseCode}
+                    </div>
+                    <div className="text-sm text-secondary-500">
+                      {record.course.courseName}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary-900">
+                    {new Date(record.date).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      record.status === 'present' 
+                        ? 'bg-green-100 text-green-800'
+                        : record.status === 'absent'
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {record.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex space-x-2">
+                      <button 
+                        onClick={() => markAttendance(record.student._id, record.course._id, 'present')}
+                        className="text-green-600 hover:text-green-900"
+                      >
+                        Present
+                      </button>
+                      <button 
+                        onClick={() => markAttendance(record.student._id, record.course._id, 'absent')}
+                        className="text-red-600 hover:text-red-900"
+                      >
+                        Absent
+                      </button>
+                      <button 
+                        onClick={() => markAttendance(record.student._id, record.course._id, 'late')}
+                        className="text-yellow-600 hover:text-yellow-900"
+                      >
+                        Late
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
   );
 };
 
-export default AdminAttendancePage;
+export default AttendancePage;

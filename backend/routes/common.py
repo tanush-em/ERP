@@ -3,13 +3,10 @@ from datetime import datetime
 from models.course import Course
 from models.timetable import Timetable
 from models.notification import Notification
-from middleware.auth_middleware import admin_or_student_required, handle_errors
 
 common_bp = Blueprint('common', __name__)
 
 @common_bp.route('/courses', methods=['GET'])
-@admin_or_student_required
-@handle_errors
 def get_courses():
     """Get courses (accessible by both admin and students)"""
     semester = request.args.get('semester')
@@ -30,8 +27,6 @@ def get_courses():
     }), 200
 
 @common_bp.route('/courses/<course_id>', methods=['GET'])
-@admin_or_student_required
-@handle_errors
 def get_course_details(course_id):
     """Get detailed course information"""
     course_model = Course()
@@ -54,8 +49,6 @@ def get_course_details(course_id):
     }), 200
 
 @common_bp.route('/timetable', methods=['GET'])
-@admin_or_student_required
-@handle_errors
 def get_timetable():
     """Get timetable information"""
     semester = request.args.get('semester')
@@ -88,8 +81,6 @@ def get_timetable():
     }), 200
 
 @common_bp.route('/notifications/categories', methods=['GET'])
-@admin_or_student_required
-@handle_errors
 def get_notification_categories():
     """Get available notification categories"""
     categories = [
@@ -108,8 +99,6 @@ def get_notification_categories():
     }), 200
 
 @common_bp.route('/academic-info', methods=['GET'])
-@admin_or_student_required
-@handle_errors
 def get_academic_info():
     """Get academic year and semester information"""
     from utils.helpers import get_semester_from_date, get_academic_year
@@ -148,8 +137,6 @@ def get_academic_info():
     }), 200
 
 @common_bp.route('/search', methods=['GET'])
-@admin_or_student_required
-@handle_errors
 def global_search():
     """Global search across students, courses, and other entities"""
     query = request.args.get('q')
@@ -170,11 +157,10 @@ def global_search():
     
     # Search students
     if entity_type in ['all', 'students']:
-        from models.user import User
-        user_model = User()
+        from models.student import Student
+        student_model = Student()
         
         student_filter = {
-            'role': 'student',
             'isActive': True,
             '$or': [
                 {'profile.firstName': {'$regex': query, '$options': 'i'}},
@@ -184,11 +170,12 @@ def global_search():
             ]
         }
         
-        students = list(user_model.collection.find(student_filter).limit(limit // 2 if entity_type == 'all' else limit))
+        students = list(student_model.collection.find(student_filter).limit(limit // 2 if entity_type == 'all' else limit))
         
-        # Remove sensitive data
+        # Remove sensitive data if exists
         for student in students:
-            del student['password']
+            if 'password' in student:
+                del student['password']
         
         from utils.helpers import serialize_mongo_doc
         results['students'] = serialize_mongo_doc(students)

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Menu, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
@@ -9,11 +9,8 @@ import {
   BellIcon,
   UserCircleIcon,
   Cog6ToothIcon,
-  ArrowRightOnRectangleIcon,
 } from '@heroicons/react/24/outline';
-import { useAuth } from '@/hooks/useAuth';
-import { useStudentNotifications } from '@/hooks/useApi';
-import { cn, getUserDisplayName } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import Button from '@/components/ui/Button';
 
 interface HeaderProps {
@@ -21,42 +18,14 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
-  const { user, logout } = useAuth();
   const router = useRouter();
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-
-  // Get notifications for students
-  const { data: notificationsData } = useStudentNotifications(
-    user?.role === 'student' ? { limit: 5 } : undefined
-  );
-
-  const handleLogout = async () => {
-    setIsLoggingOut(true);
-    await logout();
-  };
 
   const handleProfileClick = () => {
-    if (user?.role === 'admin') {
-      router.push('/admin/profile');
-    } else {
-      router.push('/student/profile');
-    }
-  };
-
-  const handleSettingsClick = () => {
-    if (user?.role === 'admin') {
-      router.push('/admin/settings');
-    } else {
-      router.push('/student/settings');
-    }
+    router.push('/student/profile');
   };
 
   const handleNotificationsClick = () => {
-    if (user?.role === 'admin') {
-      router.push('/admin/notifications');
-    } else {
-      router.push('/student/notifications');
-    }
+    router.push('/student/notifications');
   };
 
   return (
@@ -75,7 +44,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
           
           <div className="ml-4 lg:ml-0">
             <h1 className="text-lg font-semibold text-secondary-900">
-              {user?.role === 'admin' ? 'Admin Dashboard' : 'Student Portal'}
+              Student Portal
             </h1>
           </div>
         </div>
@@ -83,34 +52,27 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
         {/* Right side - Notifications and user menu */}
         <div className="flex items-center space-x-4">
           {/* Notifications */}
-          {user?.role === 'student' && (
-            <div className="relative">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleNotificationsClick}
-                className="relative"
-              >
-                <BellIcon className="h-5 w-5" />
-                {notificationsData?.unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                    {notificationsData.unreadCount > 9 ? '9+' : notificationsData.unreadCount}
-                  </span>
-                )}
-              </Button>
-            </div>
-          )}
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleNotificationsClick}
+              className="relative"
+            >
+              <BellIcon className="h-5 w-5" />
+            </Button>
+          </div>
 
           {/* User menu */}
           <Menu as="div" className="relative">
             <Menu.Button className="flex items-center space-x-2 text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
               <div className="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center">
                 <span className="text-sm font-medium text-white">
-                  {user?.profile.firstName?.[0]}{user?.profile.lastName?.[0]}
+                  S
                 </span>
               </div>
               <span className="hidden md:block text-secondary-700 font-medium">
-                {getUserDisplayName(user)}
+                Student
               </span>
             </Menu.Button>
 
@@ -128,16 +90,11 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                   {/* User info */}
                   <div className="px-4 py-2 border-b border-secondary-100">
                     <p className="text-sm font-medium text-secondary-900">
-                      {getUserDisplayName(user)}
+                      Student Portal
                     </p>
-                    <p className="text-sm text-secondary-500 capitalize">
-                      {user?.role}
+                    <p className="text-sm text-secondary-500">
+                      Academic Dashboard
                     </p>
-                    {user?.role === 'student' && user.profile.rollNumber && (
-                      <p className="text-xs text-secondary-400">
-                        {user.profile.rollNumber}
-                      </p>
-                    )}
                   </div>
 
                   {/* Menu items */}
@@ -155,40 +112,6 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                       </button>
                     )}
                   </Menu.Item>
-
-                  <Menu.Item>
-                    {({ active }) => (
-                      <button
-                        onClick={handleSettingsClick}
-                        className={cn(
-                          'flex items-center w-full px-4 py-2 text-sm text-left',
-                          active ? 'bg-secondary-50 text-secondary-900' : 'text-secondary-700'
-                        )}
-                      >
-                        <Cog6ToothIcon className="mr-3 h-4 w-4" />
-                        Settings
-                      </button>
-                    )}
-                  </Menu.Item>
-
-                  <div className="border-t border-secondary-100">
-                    <Menu.Item>
-                      {({ active }) => (
-                        <button
-                          onClick={handleLogout}
-                          disabled={isLoggingOut}
-                          className={cn(
-                            'flex items-center w-full px-4 py-2 text-sm text-left',
-                            active ? 'bg-red-50 text-red-900' : 'text-red-700',
-                            isLoggingOut && 'opacity-50 cursor-not-allowed'
-                          )}
-                        >
-                          <ArrowRightOnRectangleIcon className="mr-3 h-4 w-4" />
-                          {isLoggingOut ? 'Signing out...' : 'Sign out'}
-                        </button>
-                      )}
-                    </Menu.Item>
-                  </div>
                 </div>
               </Menu.Items>
             </Transition>

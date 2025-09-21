@@ -4,7 +4,6 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/hooks/useAuth';
 import {
   HomeIcon,
   UserGroupIcon,
@@ -33,12 +32,6 @@ const sidebarItems: SidebarItem[] = [
     roles: ['admin'],
   },
   {
-    name: 'Dashboard',
-    href: '/student/dashboard',
-    icon: HomeIcon,
-    roles: ['student'],
-  },
-  {
     name: 'Students',
     href: '/admin/students',
     icon: UserGroupIcon,
@@ -51,28 +44,10 @@ const sidebarItems: SidebarItem[] = [
     roles: ['admin'],
   },
   {
-    name: 'My Courses',
-    href: '/student/courses',
-    icon: BookOpenIcon,
-    roles: ['student'],
-  },
-  {
     name: 'Attendance',
     href: '/admin/attendance',
     icon: ClipboardDocumentListIcon,
     roles: ['admin'],
-  },
-  {
-    name: 'My Attendance',
-    href: '/student/attendance',
-    icon: ClipboardDocumentListIcon,
-    roles: ['student'],
-  },
-  {
-    name: 'Timetable',
-    href: '/student/timetable',
-    icon: CalendarDaysIcon,
-    roles: ['student'],
   },
   {
     name: 'Timetable',
@@ -87,40 +62,16 @@ const sidebarItems: SidebarItem[] = [
     roles: ['admin'],
   },
   {
-    name: 'My Scores',
-    href: '/student/scores',
-    icon: ChartBarIcon,
-    roles: ['student'],
-  },
-  {
     name: 'Fees',
     href: '/admin/fees',
     icon: CurrencyDollarIcon,
     roles: ['admin'],
   },
   {
-    name: 'My Fees',
-    href: '/student/fees',
-    icon: CurrencyDollarIcon,
-    roles: ['student'],
-  },
-  {
     name: 'Notifications',
     href: '/admin/notifications',
     icon: BellIcon,
     roles: ['admin'],
-  },
-  {
-    name: 'Notifications',
-    href: '/student/notifications',
-    icon: BellIcon,
-    roles: ['student'],
-  },
-  {
-    name: 'Profile',
-    href: '/student/profile',
-    icon: UserIcon,
-    roles: ['student'],
   },
   {
     name: 'Settings',
@@ -137,12 +88,9 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
   const pathname = usePathname();
-  const { user } = useAuth();
 
-  // Filter sidebar items based on user role
-  const filteredItems = sidebarItems.filter(item => 
-    user?.role && item.roles.includes(user.role)
-  );
+  // Show all admin items since this is admin-only app
+  const filteredItems = sidebarItems;
 
   return (
     <>
@@ -199,27 +147,25 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
           </nav>
           
           {/* User info */}
-          {user && (
-            <div className="flex-shrink-0 p-4 border-t border-secondary-700">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center">
-                    <span className="text-sm font-medium text-white">
-                      {user.profile.firstName?.[0]}{user.profile.lastName?.[0]}
-                    </span>
-                  </div>
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-white">
-                    {user.profile.firstName} {user.profile.lastName}
-                  </p>
-                  <p className="text-xs text-secondary-400 capitalize">
-                    {user.role}
-                  </p>
+          <div className="flex-shrink-0 p-4 border-t border-secondary-700">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center">
+                  <span className="text-sm font-medium text-white">
+                    AD
+                  </span>
                 </div>
               </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-white">
+                  Administrator
+                </p>
+                <p className="text-xs text-secondary-400">
+                  Admin
+                </p>
+              </div>
             </div>
-          )}
+          </div>
         </div>
       </div>
     </>

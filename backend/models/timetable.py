@@ -8,13 +8,38 @@ class Timetable:
         self.db = get_db()
         self.collection = self.db.timetables
     
-    def create_timetable_entry(self, timetable_data):
+    def create_entry(self, timetable_data):
         """Create a new timetable entry"""
         timetable_data['createdAt'] = datetime.now()
         timetable_data['updatedAt'] = datetime.now()
         
         result = self.collection.insert_one(timetable_data)
         return str(result.inserted_id)
+    
+    def get_timetable(self, semester=None, day=None):
+        """Get timetable with optional filtering"""
+        filter_query = {}
+        
+        if semester:
+            filter_query['semester'] = semester
+        
+        if day:
+            filter_query['dayOfWeek'] = day
+        
+        pipeline = [
+            {'$match': filter_query},
+            {'$lookup': {
+                'from': 'courses',
+                'localField': 'courseId',
+                'foreignField': '_id',
+                'as': 'course'
+            }},
+            {'$unwind': '$course'},
+            {'$sort': [('dayOfWeek', 1), ('startTime', 1)]}
+        ]
+        
+        timetable = list(self.collection.aggregate(pipeline))
+        return serialize_mongo_doc(timetable)
     
     def get_student_timetable(self, student_id, semester):
         """Get timetable for a student based on enrolled courses"""

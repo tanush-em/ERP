@@ -1,39 +1,42 @@
-# College ERP System
+# College ERP System - Admin Only
 
-A comprehensive Enterprise Resource Planning (ERP) system designed specifically for the CSE-AIML department. This system provides role-based access for administrators and students to manage various academic operations.
+A comprehensive Enterprise Resource Planning (ERP) system designed specifically for college administrators. This system provides complete administrative control over student management, course administration, attendance tracking, fee management, and more.
 
 ## 🌟 Features
 
-### Core Functionality
-- **Authentication & Authorization**: JWT-based authentication with role-based access control
+### Admin-Only Functionality
 - **Student Management**: Complete student lifecycle from enrollment to graduation
 - **Course Management**: Course creation, enrollment, and administration
-- **Attendance Tracking**: Digital attendance management with reporting
+- **Attendance Management**: Digital attendance tracking with comprehensive reporting
 - **Assessment & Grading**: Score management and GPA calculation
-- **Fee Management**: Fee collection and payment tracking
+- **Fee Management**: Fee collection, payment tracking, and financial reporting
 - **Timetable Management**: Schedule management for courses and rooms
-- **Notification System**: System-wide notifications and alerts
+- **Notification System**: System-wide notifications and announcements
+- **Dashboard Analytics**: Comprehensive statistics and insights
+- **System Settings**: Configuration and administrative controls
 
-### User Roles
-- **Admin**: Full system access with management capabilities
-- **Student**: Access to personal academic data and records
+### Key Admin Capabilities
+- **Student Operations**: Add, edit, delete, and manage student records
+- **Course Administration**: Create courses, manage enrollments, track progress
+- **Attendance Control**: Mark attendance, generate reports, monitor patterns
+- **Grade Management**: Add scores, calculate GPAs, generate transcripts
+- **Financial Oversight**: Track fees, record payments, manage overdue accounts
+- **Communication**: Send notifications and announcements to students
+- **Data Analytics**: View comprehensive dashboards and generate reports
 
 ## 🛠️ Tech Stack
 
 ### Backend
 - **Framework**: Flask 3.0.0 (Python)
 - **Database**: MongoDB with PyMongo
-- **Authentication**: Flask-JWT-Extended
-- **Security**: bcrypt for password hashing
-- **API**: RESTful API with comprehensive endpoints
+- **API**: RESTful API with comprehensive admin endpoints
 
 ### Frontend
 - **Framework**: Next.js 14 with TypeScript
 - **Styling**: Tailwind CSS with custom design system
-- **State Management**: TanStack Query (React Query)
-- **Forms**: React Hook Form
+- **State Management**: Modern React patterns
+- **UI Components**: Custom component library
 - **Icons**: Heroicons
-- **Notifications**: React Hot Toast
 
 ## 📋 Prerequisites
 
@@ -154,21 +157,23 @@ ERP/
 ```
 
 ### API Endpoints
-- **Authentication**: `/api/auth/*`
-- **Student Operations**: `/api/student/*`
-- **Admin Operations**: `/api/admin/*`
-- **Dashboard**: `/api/dashboard/*`
+All API endpoints are admin-focused:
+- **Students**: `/api/admin/students/*`
+- **Courses**: `/api/admin/courses/*`
+- **Attendance**: `/api/admin/attendance/*`
+- **Scores**: `/api/admin/scores/*`
+- **Fees**: `/api/admin/fees/*`
+- **Timetable**: `/api/admin/timetable/*`
+- **Notifications**: `/api/admin/notifications/*`
+- **Dashboard**: `/api/admin/dashboard/*`
 - **Common**: `/api/common/*`
 
 ## 🔒 Security Features
 
-- JWT token-based authentication
-- Role-based access control
-- Password hashing with bcrypt
 - Input validation and sanitization
 - MongoDB injection protection
 - CORS configuration
-- Request rate limiting (recommended for production)
+- Error handling and logging
 
 ## 🚀 Production Deployment
 
@@ -193,9 +198,20 @@ ERP/
 4. Add tests if applicable
 5. Submit a pull request
 
+## 📝 Usage
+
+1. Access the application at `http://localhost:3000`
+2. The system automatically redirects to the admin dashboard
+3. Use the sidebar navigation to access different admin features
+4. All functionality is designed for administrative use
+
 ## 📝 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+---
+
+**Note**: This is an admin-only system. All student-facing features have been removed to focus exclusively on administrative functionality.
 
 ## 📞 Support
 

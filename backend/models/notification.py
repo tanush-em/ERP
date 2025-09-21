@@ -8,14 +8,36 @@ class Notification:
         self.db = get_db()
         self.collection = self.db.notifications
     
-    def create_notification(self, notification_data):
+    def create_notification(self, recipient_id, title, message, notification_type='general'):
         """Create a new notification"""
-        notification_data['createdAt'] = datetime.now()
-        notification_data['updatedAt'] = datetime.now()
-        notification_data['isRead'] = False
+        notification_data = {
+            'userId': ObjectId(recipient_id),
+            'title': title,
+            'message': message,
+            'type': notification_type,
+            'createdAt': datetime.now(),
+            'updatedAt': datetime.now(),
+            'isRead': False
+        }
         
         result = self.collection.insert_one(notification_data)
         return str(result.inserted_id)
+    
+    def get_all_notifications(self):
+        """Get all notifications with user details"""
+        pipeline = [
+            {'$lookup': {
+                'from': 'students',
+                'localField': 'userId',
+                'foreignField': '_id',
+                'as': 'user'
+            }},
+            {'$unwind': '$user'},
+            {'$sort': {'createdAt': -1}}
+        ]
+        
+        notifications = list(self.collection.aggregate(pipeline))
+        return serialize_mongo_doc(notifications)
     
     def get_user_notifications(self, user_id, is_read=None, limit=50):
         """Get notifications for a user"""

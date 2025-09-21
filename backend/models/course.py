@@ -49,8 +49,8 @@ class Course:
         )
         return result.modified_count > 0
     
-    def deactivate_course(self, course_id):
-        """Deactivate course (soft delete)"""
+    def delete_course(self, course_id):
+        """Delete course (soft delete)"""
         result = self.collection.update_one(
             {'_id': ObjectId(course_id)},
             {'$set': {'isActive': False, 'updatedAt': datetime.now()}}
