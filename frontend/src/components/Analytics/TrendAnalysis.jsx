@@ -66,22 +66,7 @@ const TrendAnalysis = ({ defaultTimeRange = 30 }) => {
     fetchTrendData();
   }, [fetchTrendData]);
 
-  const processChartData = useCallback(() => {
-    if (!trendData) return null;
-
-    switch (selectedMetric) {
-      case 'operations':
-        return processOperationsData();
-      case 'performance':
-        return processPerformanceData();
-      case 'types':
-        return processOperationTypesData();
-      default:
-        return null;
-    }
-  }, [trendData, selectedMetric]);
-
-  const processOperationsData = () => {
+  const processOperationsData = useCallback(() => {
     const dailyOps = trendData.dailyOperations || [];
     
     // Group by date and status
@@ -130,9 +115,9 @@ const TrendAnalysis = ({ defaultTimeRange = 30 }) => {
         }
       ]
     };
-  };
+  }, [trendData, chartType]);
 
-  const processPerformanceData = () => {
+  const processPerformanceData = useCallback(() => {
     const perfData = trendData.performance || [];
     
     return {
@@ -167,9 +152,9 @@ const TrendAnalysis = ({ defaultTimeRange = 30 }) => {
         }
       ]
     };
-  };
+  }, [trendData, chartType]);
 
-  const processOperationTypesData = () => {
+  const processOperationTypesData = useCallback(() => {
     const typeData = trendData.operationTypes || [];
     
     // Group by date and operation type
@@ -211,7 +196,22 @@ const TrendAnalysis = ({ defaultTimeRange = 30 }) => {
         tension: 0.4
       }))
     };
-  };
+  }, [trendData, chartType]);
+
+  const processChartData = useCallback(() => {
+    if (!trendData) return null;
+
+    switch (selectedMetric) {
+      case 'operations':
+        return processOperationsData();
+      case 'performance':
+        return processPerformanceData();
+      case 'types':
+        return processOperationTypesData();
+      default:
+        return null;
+    }
+  }, [trendData, selectedMetric, processOperationsData, processPerformanceData, processOperationTypesData]);
 
   const getChartOptions = () => {
     const baseOptions = {

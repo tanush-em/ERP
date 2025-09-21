@@ -1,1 +1,1 @@
-self.__REACT_LOADABLE_MANIFEST="{\"app/admin/dashboard/page.jsx -> @/lib/api\":{\"id\":\"app/admin/dashboard/page.jsx -> @/lib/api\",\"files\":[\"static/chunks/_app-pages-browser_src_lib_api_ts.js\"]}}"
+self.__REACT_LOADABLE_MANIFEST="{\"app/admin/dashboard/page.jsx -> @/lib/api\":{\"id\":\"app/admin/dashboard/page.jsx -> @/lib/api\",\"files\":[\"static/chunks/_app-pages-browser_src_lib_api_js.js\"]}}"
